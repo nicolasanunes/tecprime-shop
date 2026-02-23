@@ -1,4 +1,4 @@
-import { ListAddressDto } from "src/addresses/dtos/list-address.dto";
+import { ListAddressDto } from 'src/addresses/dtos/list-address.dto';
 
 export class ListAuthUserDto {
   id: number;

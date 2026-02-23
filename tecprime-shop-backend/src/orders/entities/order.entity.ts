@@ -71,7 +71,7 @@ export class Order {
     length: 150,
     nullable: true,
   })
-  shippingComplement: string;
+  shippingComplement: string | null;
 
   @Column({
     name: 'shipping_neighborhood',
