@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min } from '@nestjs/class-validator';
+import { IsInt, IsOptional, IsString, Max, Min } from '@nestjs/class-validator';
 import { Type } from 'class-transformer';
 
 export class ListProductsFromExternalApiDto {
@@ -31,6 +31,7 @@ export class PaginateProductsDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   limit: number = 5;
 
   @IsOptional()

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
-import api from "@/services/api";
-import type { User, MeResponse, LoginCredentials, LoginResponse } from "@/types/auth";
+import { getMe, login as loginService, logout as logoutService } from "@/services/api";
+import type { User, LoginCredentials, LoginResponse } from "@/types/auth";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
@@ -27,15 +27,15 @@ export const useAuthStore = defineStore("auth", () => {
    */
   const checkAuth = async (suppressError = false): Promise<boolean> => {
     try {
-      const response = await api.get<MeResponse>("/auth/me");
-      if (response.data) {
+      const data = await getMe();
+      if (data) {
         // Preserva endereços já carregados, complementando com dados básicos do /me
         user.value = {
           ...user.value,
-          id: response.data.id,
-          name: response.data.name,
-          email: response.data.email,
-          addresses: response.data.addresses ?? [],
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          addresses: data.addresses ?? [],
         };
         return true;
       }
@@ -59,8 +59,8 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
 
     try {
-      const response = await api.post<LoginResponse>("/auth", credentials);
-      user.value = response.data.user;
+      const data = await loginService(credentials);
+      user.value = data.user;
     } catch (err: any) {
       error.value = err.response?.data?.message || "Erro ao fazer login";
       throw err;
@@ -75,7 +75,7 @@ export const useAuthStore = defineStore("auth", () => {
    */
   const logout = async (): Promise<void> => {
     try {
-      await api.post("/auth/logout");
+      await logoutService();
     } catch (err) {
       console.error("Erro ao fazer logout:", err);
     } finally {

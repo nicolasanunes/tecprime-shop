@@ -2,6 +2,7 @@ import axios, { type AxiosInstance } from "axios";
 import router from "@/router";
 import type { PaginateProductsParams, PaginatedProducts } from "@/types/product";
 import type { CreateOrder, ListOrder, ListOrderDetail } from "@/types/order";
+import type { LoginCredentials, LoginResponse, MeResponse } from "@/types/auth";
 
 // Instância do axios com configuração base
 const api: AxiosInstance = axios.create({
@@ -69,6 +70,25 @@ api.interceptors.response.use(
     return Promise.reject(error);
   },
 );
+
+// ---- Autenticação ----
+
+// GET /auth/me
+export const getMe = async (): Promise<MeResponse> => {
+  const response = await api.get<MeResponse>("/auth/me");
+  return response.data;
+};
+
+// POST /auth (login)
+export const login = async (credentials: LoginCredentials): Promise<LoginResponse> => {
+  const response = await api.post<LoginResponse>("/auth", credentials);
+  return response.data;
+};
+
+// POST /auth/logout
+export const logout = async (): Promise<void> => {
+  await api.post("/auth/logout");
+};
 
 // ---- Produtos ----
 

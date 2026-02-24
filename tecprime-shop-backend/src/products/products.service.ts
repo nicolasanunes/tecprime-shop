@@ -19,7 +19,7 @@ export class ProductsService {
   private cachedProducts: ListProductsDto[] | null = null;
   private cacheExpiresAt = 0;
 
-  private async fetchAllProducts(): Promise<ListProductsDto[]> {
+  async getAllProducts(): Promise<ListProductsDto[]> {
     const now = Date.now();
     if (this.cachedProducts && now < this.cacheExpiresAt) {
       this.logger.debug('Cache hit: retornando produtos do cache');
@@ -54,7 +54,7 @@ export class ProductsService {
       `Buscando produtos: page=${paginateDto.page} limit=${paginateDto.limit} search="${paginateDto.search ?? ''}"`,
     );
 
-    const products = await this.fetchAllProducts();
+    const products = await this.getAllProducts();
 
     const filtered = paginateDto.search
       ? products.filter((p) =>

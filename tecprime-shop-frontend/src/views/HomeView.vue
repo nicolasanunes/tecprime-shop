@@ -30,7 +30,6 @@ const fetchProducts = async () => {
     productsArray.value = await getProducts(searchParams);
   } catch (err: any) {
     error.value = err.response?.data?.message || "Erro ao carregar produtos";
-    console.error("Erro ao buscar produtos:", err);
     setTimeout(() => {
       error.value = null;
     }, 3000);

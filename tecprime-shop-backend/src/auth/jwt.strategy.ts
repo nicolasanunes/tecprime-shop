@@ -2,13 +2,12 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { Request } from 'express';
-import { UsersService } from 'src/users/users.service';
 import { LoginPayloadDto } from './dtos/list-login.dto';
 import { MeResponseDto } from './dtos/me-response.dto';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(private readonly usersService: UsersService) {
+  constructor() {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
         (request: Request) => {
@@ -20,23 +19,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: LoginPayloadDto): Promise<MeResponseDto> {
-    try {
-      if (!payload?.id || !payload?.email) {
-        throw new UnauthorizedException('Token inválido');
-      }
-
-      const user = await this.usersService.findUserById(payload.id);
-
-      return {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        addresses: user.addresses ?? [],
-      };
-    } catch (error) {
-      if (error instanceof UnauthorizedException) throw error;
-      throw new UnauthorizedException('Falha na autenticação');
+  validate(payload: LoginPayloadDto): MeResponseDto {
+    if (!payload?.id || !payload?.email) {
+      throw new UnauthorizedException('Token inválido');
     }
+
+    return {
+      id: payload.id,
+      email: payload.email,
+      name: payload.name,
+      addresses: [],
+    };
   }
 }

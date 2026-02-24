@@ -7,10 +7,10 @@ import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import { LoginDto } from './dtos/login.dto';
 import { LoginPayloadDto } from './dtos/list-login.dto';
-import { UsersService } from 'src/users/users.service';
-import { User } from 'src/users/entities/user.entity';
-import { validatePassword } from 'src/utils/password';
-import { setAccessTokenCookie, setRefreshTokenCookie } from 'src/utils/cookies';
+import { UsersService } from '../users/users.service';
+import { User } from '../users/entities/user.entity';
+import { validatePassword } from '../utils/password';
+import { setAccessTokenCookie, setRefreshTokenCookie } from '../utils/cookies';
 import { LoginResponseDto } from './dtos/login-response.dto';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 
@@ -46,6 +46,7 @@ export class AuthService {
     const payload: LoginPayloadDto = {
       id: user.id,
       email: user.email,
+      name: user.name,
     };
 
     const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
@@ -78,6 +79,7 @@ export class AuthService {
       const newPayload: LoginPayloadDto = {
         id: user.id,
         email: user.email,
+        name: user.name,
       };
 
       const newAccessToken = this.jwtService.sign(newPayload, {

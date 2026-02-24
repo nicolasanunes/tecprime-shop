@@ -15,6 +15,7 @@ import { ThrottlerGuard, Throttle, SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { LoginDto } from './dtos/login.dto';
 import { AuthService } from './auth.service';
+import { UsersService } from '../users/users.service';
 import { LoginResponseDto } from './dtos/login-response.dto';
 import { MeResponseDto } from './dtos/me-response.dto';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
@@ -22,7 +23,10 @@ import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 @Controller('auth')
 @SkipThrottle() // por padrão pula throttle; aplicamos apenas no login
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly usersService: UsersService,
+  ) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
@@ -56,7 +60,13 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  me(@Req() request: Request & { user: MeResponseDto }): MeResponseDto {
-    return request.user;
+  async me(@Req() request: Request & { user: MeResponseDto }): Promise<MeResponseDto> {
+    const user = await this.usersService.findUserById(request.user.id);
+    return {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      addresses: user.addresses ?? [],
+    };
   }
 }

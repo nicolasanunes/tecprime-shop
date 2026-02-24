@@ -8,6 +8,7 @@ export const setAccessTokenCookie = (
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
+    path: '/',
     maxAge: 15 * 60 * 1000, // 15 minutos
   });
 };
@@ -20,6 +21,7 @@ export const setRefreshTokenCookie = (
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
+    path: '/',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 dias
   });
 };

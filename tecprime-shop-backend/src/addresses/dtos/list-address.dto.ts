@@ -1,6 +1,5 @@
 export class ListAddressDto {
   id: number;
-  userId: number;
   street: string;
   number: string;
   complement: string | null;

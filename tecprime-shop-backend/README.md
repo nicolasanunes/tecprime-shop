@@ -1,98 +1,185 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# tecprime-shop-backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+API REST do projeto **TecPrime Shop**, uma loja virtual de produtos de tecnologia. Desenvolvida com [NestJS](https://nestjs.com/) e TypeScript, a aplicação expõe endpoints para autenticação de usuários, consulta de produtos e gerenciamento de pedidos.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## Visão Geral
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+O backend é responsável por:
 
-## Project setup
+- **Autenticação** — login, logout e renovação de sessão via JWT armazenado em cookies HttpOnly.
+- **Usuários** — consulta de dados do usuário autenticado, incluindo endereços.
+- **Produtos** — busca e paginação de produtos obtidos de uma API externa, com cache em memória de 5 minutos para reduzir chamadas externas.
+- **Pedidos** — criação e consulta de pedidos vinculados ao usuário autenticado, com validação de estoque e cálculo de totais.
 
-```bash
-$ npm install
+---
+
+## Estrutura de Pastas
+
+```
+src/
+├── app.module.ts               # Módulo raiz; registra todos os módulos e middlewares globais
+├── main.ts                     # Bootstrap da aplicação
+│
+├── auth/                       # Autenticação JWT
+│   ├── auth.controller.ts      # POST /auth, POST /auth/refresh-token, POST /auth/logout, GET /auth/me
+│   ├── auth.service.ts         # Lógica de login, refresh e logout
+│   ├── jwt.strategy.ts         # Estratégia Passport para validação do JWT
+│   └── dtos/                   # DTOs de entrada e saída do módulo de auth
+│
+├── users/                      # Gerenciamento de usuários
+│   ├── users.controller.ts
+│   ├── users.service.ts
+│   └── entities/               # Entidade User (TypeORM)
+│
+├── products/                   # Catálogo de produtos
+│   ├── products.controller.ts  # GET /products
+│   ├── products.service.ts     # Integração com API externa + cache em memória
+│   └── dtos/
+│
+├── orders/                     # Pedidos
+│   ├── orders.controller.ts    # POST /orders, GET /orders/:id
+│   ├── orders.service.ts       # Orquestração: validação → cálculo → persistência
+│   ├── entities/               # Entidades Order e OrderItem (TypeORM)
+│   ├── repositories/           # OrdersRepository (abstração das queries TypeORM)
+│   ├── mappers/                # Conversão de entidades para DTOs de resposta
+│   ├── validators/             # OrderValidator (regras de negócio, ex.: estoque)
+│   └── dtos/
+│
+├── addresses/                  # Endereços do usuário
+│   ├── entities/
+│   └── dtos/
+│
+├── db/                         # Configuração do banco de dados
+│   ├── data-source.ts          # DataSource do TypeORM (usado pelo CLI de migrations)
+│   ├── db-config.service.ts    # Serviço que fornece as opções de conexão ao TypeOrmModule
+│   └── migrations/             # Migrations versionadas (schema inicial + seeds)
+│
+├── common/
+│   └── middlewares/
+│       └── http-logger.middleware.ts  # Log de todas as requisições HTTP
+│
+└── utils/
+    ├── cookies.ts              # Helpers para escrita de cookies HttpOnly
+    └── password.ts             # Hash e comparação de senhas com bcrypt
 ```
 
-## Compile and run the project
+---
 
-```bash
-# development
-$ npm run start
+## Decisões Arquiteturais
 
-# watch mode
-$ npm run start:dev
+### NestJS com módulos independentes
 
-# production mode
-$ npm run start:prod
+Cada domínio (auth, users, products, orders) é encapsulado em seu próprio módulo NestJS com controller, service, module e DTOs próprios. Isso mantém o código coeso, facilita testes isolados e torna simples adicionar ou remover funcionalidades sem afetar outros módulos.
+
+### JWT em cookies HttpOnly
+
+Os tokens de acesso (`accessToken`, 15 min) e de renovação (`refreshToken`, 7 dias) são enviados em cookies `HttpOnly` em vez de serem retornados no corpo da resposta. Essa abordagem evita que scripts no frontend acessem os tokens diretamente, mitigando ataques XSS.
+
+### Refresh Token para renovação de sessão
+
+O fluxo de autenticação usa dois tokens: o `accessToken` de curta duração para autorizar requisições e o `refreshToken` de longa duração para emitir novos `accessToken`s sem exigir novo login, equilibrando segurança e experiência do usuário.
+
+### Rate Limiting no endpoint de login
+
+O `ThrottlerModule` limita o endpoint `POST /auth` a **5 tentativas por minuto por IP**, protegendo contra ataques de força bruta. Os demais endpoints respeitam o limite global de 10 req/min, e rotas que não necessitam de proteção utilizam `@SkipThrottle()`.
+
+### Cache em memória para produtos externos
+
+Os produtos são fornecidos por uma API externa (FakeStore API). Para evitar latência excessiva a cada requisição, o `ProductsService` mantém um cache em memória com TTL de 5 minutos. É uma solução simples e eficaz para o volume atual.
+
+### Repository Pattern no módulo de pedidos
+
+O módulo de orders utiliza um `OrdersRepository` dedicado que encapsula as queries do TypeORM, incluindo a criação transacional de `Order` + `OrderItems`. Isso separa a lógica de acesso a dados da orquestração de negócio no `OrdersService`, tornando o código mais testável e fácil de manter.
+
+### Mapper e Validator como classes utilitárias
+
+`OrderMapper` e `OrderValidator` são classes com métodos estáticos que realizam, respectivamente, a conversão de entidades para DTOs e a validação de regras de negócio (como verificação de estoque). Separar essas responsabilidades do service reduz o tamanho das classes e facilita reutilização e testes unitários.
+
+### Migrations com TypeORM CLI
+
+A evolução do schema do banco de dados é controlada por migrations versionadas em `src/db/migrations/`. Isso garante rastreabilidade das mudanças estruturais e facilita a reprodução do ambiente em qualquer máquina ou pipeline de CI/CD.
+
+### Banco de dados via Docker Compose
+
+O MySQL é provisionado localmente via `docker-compose.yaml`, isolando o ambiente de desenvolvimento e evitando dependências de instalações locais do banco.
+
+---
+
+## Configuração e Execução
+
+### Pré-requisitos
+
+- Node.js 20+
+- Docker e Docker Compose
+
+### Variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto com as seguintes variáveis:
+
+```env
+# Banco de dados
+MYSQL_CONTAINER_NAME=tecprime-mysql
+MYSQL_PORT=3306
+MYSQL_ROOT_PASSWORD=root
+MYSQL_DATABASE=tecprime
+MYSQL_USER=tecprime
+MYSQL_PASSWORD=tecprime
+
+# TypeORM
+DB_HOST=localhost
+DB_PORT=3306
+DB_USERNAME=tecprime
+DB_PASSWORD=tecprime
+DB_DATABASE=tecprime
+
+# JWT
+JWT_SECRET=sua_chave_secreta
+
+# API externa de produtos
+EXTERNAL_PRODUCTS_API_URL=https://fakestoreapi.com/products
 ```
 
-## Run tests
+### Subindo o banco de dados
+
+```bash
+docker compose up -d
+```
+
+### Instalando dependências
+
+```bash
+npm install
+```
+
+### Executando migrations
+
+```bash
+npm run migration:run
+```
+
+### Rodando a aplicação
+
+```bash
+# desenvolvimento (watch mode)
+npm run start:dev
+
+# produção
+npm run start:prod
+```
+
+---
+
+## Testes
 
 ```bash
 # unit tests
-$ npm run test
+npm run test
 
 # e2e tests
-$ npm run test:e2e
+npm run test:e2e
 
-# test coverage
-$ npm run test:cov
+# cobertura
+npm run test:cov
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).

@@ -8,20 +8,19 @@ import { ListOrderDetailDto } from './dtos/list-order-detail.dto';
 import { MeResponseDto } from '../auth/dtos/me-response.dto';
 
 @Controller('orders')
+@UseGuards(AuthGuard('jwt'))
 export class OrdersController {
   constructor(private readonly ordersService: OrdersService) {}
 
   @Post()
-  @UseGuards(AuthGuard('jwt'))
   async createOrder(
     @Req() request: Request & { user: MeResponseDto },
     @Body() createOrderDto: CreateOrderDto,
   ): Promise<ListOrderDto> {
     return this.ordersService.createOrder(request.user.id, createOrderDto);
   }
- 
+
   @Get(':id')
-  @UseGuards(AuthGuard('jwt'))
   async findOrder(
     @Req() request: Request & { user: MeResponseDto },
     @Param('id', ParseIntPipe) orderId: number,
