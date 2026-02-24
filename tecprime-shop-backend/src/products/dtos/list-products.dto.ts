@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, Min } from '@nestjs/class-validator';
+import { IsInt, IsOptional, IsString, Min } from '@nestjs/class-validator';
 import { Type } from 'class-transformer';
 
 export class ListProductsFromExternalApiDto {
@@ -31,7 +31,11 @@ export class PaginateProductsDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
-  limit: number = 10;
+  limit: number = 5;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }
 
 export class PaginatedProductsDto {

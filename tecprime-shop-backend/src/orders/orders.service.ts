@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { Order } from './entities/order.entity';
@@ -9,6 +9,8 @@ import { ListOrderDetailDto } from './dtos/list-order-detail.dto';
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order)
     private readonly orderRepository: Repository<Order>,
@@ -16,6 +18,8 @@ export class OrdersService {
   ) {}
 
   async createOrder(userId: number, dto: CreateOrderDto): Promise<ListOrderDto> {
+    this.logger.log(`Iniciando criação de pedido: userId=${userId} itens=${dto.items.length}`);
+
     const totalAmount = dto.items.reduce(
       (sum, item) => sum + item.productUnitPrice * item.quantity,
       0,
@@ -53,6 +57,10 @@ export class OrdersService {
 
       await manager.save(orderItems);
 
+      this.logger.log(
+        `Pedido criado com sucesso: orderId=${savedOrder.id} userId=${userId} total=${totalAmount.toFixed(2)} itens=${orderItems.length}`,
+      );
+
       return {
         orderId: savedOrder.id,
         status: savedOrder.status,
@@ -64,12 +72,15 @@ export class OrdersService {
   }
 
   async findOrderById(userId: number, orderId: number): Promise<ListOrderDetailDto> {
+    this.logger.debug(`Buscando pedido: orderId=${orderId} userId=${userId}`);
+
     const order = await this.orderRepository.findOne({
       where: { id: orderId, userId },
       relations: ['items'],
     });
 
     if (!order) {
+      this.logger.warn(`Pedido não encontrado: orderId=${orderId} userId=${userId}`);
       throw new NotFoundException(`Pedido #${orderId} não encontrado.`);
     }
 

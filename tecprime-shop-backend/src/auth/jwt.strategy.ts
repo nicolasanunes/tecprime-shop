@@ -24,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     try {
       if (!payload?.id || !payload?.email) {
         throw new UnauthorizedException('Token inválido');
-      } 
+      }
 
       const user = await this.usersService.findUserById(payload.id);
 
@@ -32,6 +32,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: user.id,
         email: user.email,
         name: user.name,
+        addresses: user.addresses ?? [],
       };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;

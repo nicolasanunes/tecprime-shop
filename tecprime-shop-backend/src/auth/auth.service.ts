@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
@@ -15,6 +16,8 @@ import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -24,6 +27,8 @@ export class AuthService {
     loginDto: LoginDto,
     response: Response,
   ): Promise<LoginResponseDto> {
+    this.logger.log(`Tentativa de login: ${loginDto.email}`);
+
     const user: User | undefined = await this.usersService
       .listUserByEmail(loginDto.email)
       .catch(() => undefined);
@@ -34,6 +39,7 @@ export class AuthService {
     );
 
     if (!user || !isPasswordValid) {
+      this.logger.warn(`Login falhou para: ${loginDto.email}`);
       throw new UnauthorizedException('E-mail e/ou senha inválidos!');
     }
 
@@ -47,6 +53,8 @@ export class AuthService {
 
     setAccessTokenCookie(response, accessToken);
     setRefreshTokenCookie(response, refreshToken);
+
+    this.logger.log(`Login bem-sucedido: userId=${user.id} email=${user.email}`);
 
     return {
       user: {
@@ -78,8 +86,11 @@ export class AuthService {
 
       setAccessTokenCookie(response, newAccessToken);
 
+      this.logger.log(`Token renovado: userId=${user.id} email=${user.email}`);
+
       return { message: 'Token atualizado com sucesso' };
     } catch {
+      this.logger.warn('Tentativa de refresh com token inválido ou expirado');
       throw new UnauthorizedException('Refresh token inválido ou expirado');
     }
   }
@@ -87,6 +98,7 @@ export class AuthService {
   logout(response: Response): string {
     response.clearCookie('accessToken');
     response.clearCookie('refreshToken');
+    this.logger.log('Logout realizado');
     return 'Logout realizado com sucesso';
   }
 }

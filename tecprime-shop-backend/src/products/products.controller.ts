@@ -11,4 +11,4 @@ export class ProductsController {
     return this.productsService.getProducts(paginateDto);
   }
 }
- 
+  

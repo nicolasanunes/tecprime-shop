@@ -11,6 +11,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { ThrottlerGuard, Throttle, SkipThrottle } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { LoginDto } from './dtos/login.dto';
 import { AuthService } from './auth.service';
@@ -19,11 +20,14 @@ import { MeResponseDto } from './dtos/me-response.dto';
 import { RefreshTokenResponseDto } from './dtos/refresh-token-response.dto';
 
 @Controller('auth')
+@SkipThrottle() // por padrão pula throttle; aplicamos apenas no login
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post()
   @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { ttl: 60000, limit: 5 } }) // máx 5 tentativas de login por minuto por IP
   async login(
     @Body() loginDto: LoginDto,
     @Res({ passthrough: true }) response: Response,
@@ -50,9 +54,9 @@ export class AuthController {
     return this.authService.logout(response);
   }
 
-  @Get('me') 
+  @Get('me')
   @UseGuards(AuthGuard('jwt'))
   me(@Req() request: Request & { user: MeResponseDto }): MeResponseDto {
     return request.user;
   }
-} 
+}
